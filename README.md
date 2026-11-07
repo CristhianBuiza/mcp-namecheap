@@ -69,13 +69,15 @@ git clone https://github.com/CristhianBuiza/mcp-namecheap.git && cd mcp-namechea
 
 The compiled entry point is `dist/index.js`. With this option you can keep your settings in a `.env` file next to the code.
 
-### Option B: global install, one command
+### Option B: no clone, run with `npx`
+
+Your MCP client can fetch, build and start the server straight from GitHub:
 
 ```bash
-npm install -g github:CristhianBuiza/mcp-namecheap
+npx -y github:CristhianBuiza/mcp-namecheap
 ```
 
-This puts an `mcp-namecheap` command on your `PATH`. With a global install, pass your settings through the MCP client's `env` block (see [section 4](#4-connect-it-to-an-mcp-client)) rather than a `.env` file, because the package lives inside npm's global folder.
+npm caches the build, so later starts are fast. With this option, pass your settings through the MCP client's `env` block (see [section 4](#4-connect-it-to-an-mcp-client)) rather than a `.env` file, because the package lives in npm's cache.
 
 ## 3. Configuration
 
@@ -117,7 +119,22 @@ Credentials are only read when the first tool is called, so the server starts (a
 
 Any client that can launch a stdio MCP server works. Replace `/ABSOLUTE/PATH/TO/mcp-namecheap` with the folder where you cloned the repo.
 
-If you used the global install (option B), use `"command": "mcp-namecheap"` with no `args` instead of `node` + path.
+With `npx` (option B), use this instead of `node` + path:
+
+```json
+{
+  "mcpServers": {
+    "namecheap": {
+      "command": "npx",
+      "args": ["-y", "github:CristhianBuiza/mcp-namecheap"],
+      "env": {
+        "NAMECHEAP_API_USER": "YOUR_API_USER",
+        "NAMECHEAP_API_KEY": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
 
 ### Cursor
 
