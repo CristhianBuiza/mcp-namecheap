@@ -3,9 +3,17 @@
 A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for the [Namecheap API](https://www.namecheap.com/support/api/intro/). It lets AI agents and any MCP-compatible client (Cursor, Claude Desktop, VS Code, custom agents, etc.) manage domains, DNS records, nameservers, email forwarding and pricing in a Namecheap account.
 
 - Runs locally over **stdio**; no extra service to host.
-- Credentials stay on your machine (environment variables or a local `.env`).
+- **Guided setup:** one command asks for your credentials, tests them, and saves them to a private file. No env files to write by hand.
 - Purchases (register / renew) are **disabled by default** and must be explicitly enabled.
 - Tools carry MCP annotations (`readOnlyHint`, `destructiveHint`) so clients can ask for confirmation before risky actions.
+
+## Quick start
+
+```bash
+npx -y github:CristhianBuiza/mcp-namecheap setup
+```
+
+Answer the questions, paste the printed snippet into your MCP client config, and reload the client. Details below.
 
 ---
 
@@ -14,15 +22,16 @@ A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for the
 1. [Features](#features)
 2. [Requirements](#requirements)
 3. [Enable the Namecheap API](#1-enable-the-namecheap-api)
-4. [Install and build](#2-install-and-build)
-5. [Configuration](#3-configuration)
+4. [Install](#2-install)
+5. [Run the setup wizard](#3-run-the-setup-wizard)
 6. [Connect it to an MCP client](#4-connect-it-to-an-mcp-client)
-7. [Tools reference](#tools-reference)
-8. [Usage examples](#usage-examples)
-9. [How it works](#how-it-works)
-10. [Security notes](#security-notes)
-11. [Troubleshooting](#troubleshooting)
-12. [Development](#development)
+7. [Advanced: environment variables](#advanced-environment-variables)
+8. [Tools reference](#tools-reference)
+9. [Usage examples](#usage-examples)
+10. [How it works](#how-it-works)
+11. [Security notes](#security-notes)
+12. [Troubleshooting](#troubleshooting)
+13. [Development](#development)
 
 ---
 
@@ -61,84 +70,90 @@ A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for the
 
 `npm install` installs the dependencies **and** compiles the TypeScript (via the `prepare` script), so a single command is enough.
 
-### Option A: clone (recommended)
+### Option A: no clone, run with `npx`
+
+Nothing to install up front. `npx` fetches, builds and caches the server from GitHub the first time it runs. Go straight to the setup wizard:
+
+```bash
+npx -y github:CristhianBuiza/mcp-namecheap setup
+```
+
+### Option B: clone
 
 ```bash
 git clone https://github.com/CristhianBuiza/mcp-namecheap.git && cd mcp-namecheap && npm install
+npm run setup
 ```
 
-The compiled entry point is `dist/index.js`. With this option you can keep your settings in a `.env` file next to the code.
+The compiled entry point is `dist/index.js`.
 
-### Option B: no clone, run with `npx`
+## 3. Run the setup wizard
 
-Your MCP client can fetch, build and start the server straight from GitHub:
+MCP servers talk to the client over stdin/stdout, so they cannot stop and ask you questions while running. Instead, a one-time **setup command** asks for each value in your terminal, tests it against the API, and saves it. It is the same for both install options:
 
 ```bash
-npx -y github:CristhianBuiza/mcp-namecheap
+npx -y github:CristhianBuiza/mcp-namecheap setup   # option A
+npm run setup                                     # option B, inside the clone
 ```
 
-npm caches the build, so later starts are fast. With this option, pass your settings through the MCP client's `env` block (see [section 4](#4-connect-it-to-an-mcp-client)) rather than a `.env` file, because the package lives in npm's cache.
+What it asks, one question at a time (press Enter to accept the value in brackets):
 
-## 3. Configuration
+| Question | Notes |
+| --- | --- |
+| API username | Your Namecheap API user |
+| API key | Typed input is hidden |
+| Account username | Defaults to the API username; only differs for reseller setups |
+| Whitelisted public IP | `auto` detects it via `api.ipify.org` |
+| Use the sandbox API? | `y` for `api.sandbox.namecheap.com` |
+| Enable register / renew? | Default **No**; these tools charge your balance |
+| Test the connection now? | Calls `getBalances`; if it fails you can fix the values or save anyway |
 
-The server reads its settings from environment variables. You can provide them in either of two ways:
+Example session (placeholders only):
 
-- **A `.env` file** in the project root (next to `package.json`). Copy the template and fill it in:
+```text
+$ npx -y github:CristhianBuiza/mcp-namecheap setup
+Namecheap MCP setup
 
-  ```bash
-  cp .env.example .env
-  ```
+Your answers are saved to ~/.config/mcp-namecheap/config.json (readable only by you).
+Get your API key in Namecheap: Profile > Tools > API Access.
+Add this machine's public IP to the whitelist on that same page.
 
-- **The `env` block of your MCP client config** (see the next section). This is the easiest option when you run the server from a shared location. If a variable is set in both places, the client's value wins; `.env` never overrides variables that are already set.
+API username: YOUR_API_USER
+API key (hidden):
+Account username [YOUR_API_USER]:
+Whitelisted public IP (auto = detect it) [auto]:
+Use the sandbox API (api.sandbox.namecheap.com)? (y/N):
+Enable register_domain / renew_domain? They charge your balance (y/N):
+Test the connection now? (Y/n):
+Connected. Available balance: 25.00 USD
 
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `NAMECHEAP_API_USER` | Yes | | Your Namecheap API username |
-| `NAMECHEAP_API_KEY` | Yes | | Your Namecheap API key |
-| `NAMECHEAP_USERNAME` | No | value of `NAMECHEAP_API_USER` | Account the commands act on (only differs for reseller setups) |
-| `NAMECHEAP_CLIENT_IP` | No | auto-detected | Whitelisted public IP sent with every request. If empty, it is detected once via `api.ipify.org` |
-| `NAMECHEAP_SANDBOX` | No | `false` | `true` to use `api.sandbox.namecheap.com` instead of production |
-| `NAMECHEAP_ENABLE_PURCHASES` | No | `false` | `true` to allow `register_domain` and `renew_domain`, which **charge your account balance** |
-
-Example `.env` (placeholders only):
-
-```dotenv
-NAMECHEAP_API_USER=YOUR_API_USER
-NAMECHEAP_API_KEY=YOUR_API_KEY
-NAMECHEAP_USERNAME=
-NAMECHEAP_CLIENT_IP=YOUR_WHITELISTED_IP
-NAMECHEAP_SANDBOX=false
-NAMECHEAP_ENABLE_PURCHASES=false
+Saved to ~/.config/mcp-namecheap/config.json.
 ```
 
-Boolean variables accept `1`, `true` or `yes` (case-insensitive).
+**Where settings are stored:** `~/.config/mcp-namecheap/config.json` (or `$XDG_CONFIG_HOME/mcp-namecheap/` on Linux, `%APPDATA%\mcp-namecheap\` on Windows). The file is created with permissions `600` and lives **outside the repository**, so it can never be committed. Set `NAMECHEAP_CONFIG_FILE` to use a different path.
 
-Credentials are only read when the first tool is called, so the server starts (and lists its tools) even before you configure it.
+**To change a value**, run setup again; current values are offered as defaults and the saved key is kept if you just press Enter.
+
+If the server is started before setup, it still lists its tools, and every tool call returns a message telling the agent to run the setup command.
 
 ## 4. Connect it to an MCP client
 
-Any client that can launch a stdio MCP server works. Replace `/ABSOLUTE/PATH/TO/mcp-namecheap` with the folder where you cloned the repo.
+The wizard prints the exact snippet to paste. For **Cursor**, add it to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per project), then reload MCP servers.
 
-With `npx` (option B), use this instead of `node` + path:
+Option A (`npx`):
 
 ```json
 {
   "mcpServers": {
     "namecheap": {
       "command": "npx",
-      "args": ["-y", "github:CristhianBuiza/mcp-namecheap"],
-      "env": {
-        "NAMECHEAP_API_USER": "YOUR_API_USER",
-        "NAMECHEAP_API_KEY": "YOUR_API_KEY"
-      }
+      "args": ["-y", "github:CristhianBuiza/mcp-namecheap"]
     }
   }
 }
 ```
 
-### Cursor
-
-Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per project):
+Option B (clone), replacing the path with your clone's location:
 
 ```json
 {
@@ -151,16 +166,42 @@ Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per project):
 }
 ```
 
-### Claude Desktop, VS Code and other clients
+Claude Desktop, VS Code and other stdio MCP clients use the same shape. No credentials are needed in the client config: the server reads the file saved by setup.
 
-Same shape. If you prefer not to keep a `.env` file, pass the credentials through `env`:
+### Quick test with the MCP Inspector
+
+```bash
+npx @modelcontextprotocol/inspector npx -y github:CristhianBuiza/mcp-namecheap
+```
+
+Call `get_balances` or `list_domains` to confirm the credentials and IP whitelist are correct.
+
+## Advanced: environment variables
+
+Everything the wizard saves can also be provided as environment variables, for example in CI or when you prefer to keep secrets in your client's config. Settings are resolved in this order (first wins):
+
+1. The `env` block of your MCP client config.
+2. The file saved by `setup`.
+3. A `.env` file in the project root (clone only; copy `.env.example`).
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `NAMECHEAP_API_USER` | Yes | | Your Namecheap API username |
+| `NAMECHEAP_API_KEY` | Yes | | Your Namecheap API key |
+| `NAMECHEAP_USERNAME` | No | value of `NAMECHEAP_API_USER` | Account the commands act on (only differs for reseller setups) |
+| `NAMECHEAP_CLIENT_IP` | No | auto-detected | Whitelisted public IP sent with every request. If empty, it is detected once via `api.ipify.org` |
+| `NAMECHEAP_SANDBOX` | No | `false` | `true` to use `api.sandbox.namecheap.com` instead of production |
+| `NAMECHEAP_ENABLE_PURCHASES` | No | `false` | `true` to allow `register_domain` and `renew_domain`, which **charge your account balance** |
+| `NAMECHEAP_CONFIG_FILE` | No | `~/.config/mcp-namecheap/config.json` | Where `setup` saves and the server reads settings |
+
+Boolean variables accept `1`, `true` or `yes` (case-insensitive). Example client config with inline credentials (placeholders only):
 
 ```json
 {
   "mcpServers": {
     "namecheap": {
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/mcp-namecheap/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "github:CristhianBuiza/mcp-namecheap"],
       "env": {
         "NAMECHEAP_API_USER": "YOUR_API_USER",
         "NAMECHEAP_API_KEY": "YOUR_API_KEY",
@@ -171,15 +212,7 @@ Same shape. If you prefer not to keep a `.env` file, pass the credentials throug
 }
 ```
 
-Avoid committing a client config that contains real keys. Most clients also support variable interpolation (for example `"${env:NAMECHEAP_API_KEY}"`); check your client's docs.
-
-### Quick test with the MCP Inspector
-
-```bash
-npx @modelcontextprotocol/inspector node dist/index.js
-```
-
-The server starts and lists its 19 tools even without credentials. Call `get_balances` or `list_domains` to confirm the credentials and IP whitelist are correct.
+Avoid committing a client config that contains real keys.
 
 ---
 
@@ -273,7 +306,7 @@ Example raw tool call (as sent by a client):
 
 ## Security notes
 
-- Never commit `.env` or a client config that contains a real API key. Keep `.env` in `.gitignore`.
+- The setup wizard stores credentials in your user config folder with permissions `600`, outside the repository. If you use `.env` instead, keep it in `.gitignore` (it already is). Never commit a client config that contains a real API key.
 - The API key grants full control of the account. Whitelist only the IPs you need and rotate the key if it is ever exposed.
 - Leave `NAMECHEAP_ENABLE_PURCHASES=false` unless you actually want the agent to spend money. Even when enabled, the tool descriptions instruct agents to confirm prices with you first.
 - Prefer `add_dns_record` / `delete_dns_record` over `set_dns_records`, which deletes anything you do not include.
@@ -283,7 +316,8 @@ Example raw tool call (as sent by a client):
 
 | Symptom | Fix |
 | --- | --- |
-| `Missing NAMECHEAP_API_USER / NAMECHEAP_API_KEY` | Set both variables in `.env` or in the client's `env` block, then restart the server |
+| `Namecheap is not configured yet` | Run `npx -y github:CristhianBuiza/mcp-namecheap setup` (or `npm run setup` in a clone), then reload the MCP server |
+| Setup's connection test fails | Check the API key, that API access is ON, and that the IP shown is whitelisted; then re-run setup |
 | Error `1011150` / invalid request IP | Whitelist the IP shown in the hint under **API Access**, or set `NAMECHEAP_CLIENT_IP` to an already whitelisted IP |
 | `Could not auto-detect public IP` | The machine cannot reach `api.ipify.org`; set `NAMECHEAP_CLIENT_IP` explicitly |
 | `Purchases are disabled` | Set `NAMECHEAP_ENABLE_PURCHASES=true` (only if you intend to register or renew) |
@@ -295,16 +329,20 @@ Example raw tool call (as sent by a client):
 ```bash
 npm install       # install dependencies and build (runs the prepare script)
 npm run build     # recompile TypeScript to dist/ after changes
+npm run setup     # guided configuration
 npm start         # run the server on stdio
 ```
 
 Project layout:
 
 ```text
-.env.example        # settings template (copy to .env)
-package.json        # scripts: build, prepare (build on install), start
+.env.example        # settings template for the .env alternative
+package.json        # scripts: build, prepare (build on install), setup, start
 src/
-  index.ts          # entry point: loads config, registers tools, starts stdio transport
+  index.ts          # entry point: "setup" command, loads settings, registers tools, starts stdio
+  setup.ts          # guided setup wizard (asks, tests, saves)
+  settings.ts       # saved settings file: location, read/write, apply to env
+  prompt.ts         # terminal prompts (hidden input for secrets)
   client.ts         # Namecheap XML API client, error handling, helpers
   result.ts         # wraps tool results/errors in MCP content
   tools/
