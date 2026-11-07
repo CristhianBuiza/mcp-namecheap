@@ -57,16 +57,25 @@ A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for the
 
 > **Sandbox:** Namecheap offers a separate sandbox environment at `sandbox.namecheap.com`. It needs its own account and its own API key. Use it to test without touching real domains.
 
-## 2. Install and build
+## 2. Install
+
+`npm install` installs the dependencies **and** compiles the TypeScript (via the `prepare` script), so a single command is enough.
+
+### Option A: clone (recommended)
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USER/mcp-namecheap.git
-cd mcp-namecheap
-npm install
-npm run build
+git clone https://github.com/CristhianBuiza/mcp-namecheap.git && cd mcp-namecheap && npm install
 ```
 
-The compiled entry point is `dist/index.js`.
+The compiled entry point is `dist/index.js`. With this option you can keep your settings in a `.env` file next to the code.
+
+### Option B: global install, one command
+
+```bash
+npm install -g github:CristhianBuiza/mcp-namecheap
+```
+
+This puts an `mcp-namecheap` command on your `PATH`. With a global install, pass your settings through the MCP client's `env` block (see [section 4](#4-connect-it-to-an-mcp-client)) rather than a `.env` file, because the package lives inside npm's global folder.
 
 ## 3. Configuration
 
@@ -107,6 +116,8 @@ Credentials are only read when the first tool is called, so the server starts (a
 ## 4. Connect it to an MCP client
 
 Any client that can launch a stdio MCP server works. Replace `/ABSOLUTE/PATH/TO/mcp-namecheap` with the folder where you cloned the repo.
+
+If you used the global install (option B), use `"command": "mcp-namecheap"` with no `args` instead of `node` + path.
 
 ### Cursor
 
@@ -151,7 +162,7 @@ Avoid committing a client config that contains real keys. Most clients also supp
 npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
-Call `get_balances` or `list_domains` to confirm the credentials and IP whitelist are correct.
+The server starts and lists its 19 tools even without credentials. Call `get_balances` or `list_domains` to confirm the credentials and IP whitelist are correct.
 
 ---
 
@@ -265,14 +276,16 @@ Example raw tool call (as sent by a client):
 ## Development
 
 ```bash
-npm install
-npm run build     # compile TypeScript to dist/
+npm install       # install dependencies and build (runs the prepare script)
+npm run build     # recompile TypeScript to dist/ after changes
 npm start         # run the server on stdio
 ```
 
 Project layout:
 
 ```text
+.env.example        # settings template (copy to .env)
+package.json        # scripts: build, prepare (build on install), start
 src/
   index.ts          # entry point: loads config, registers tools, starts stdio transport
   client.ts         # Namecheap XML API client, error handling, helpers
