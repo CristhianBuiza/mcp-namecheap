@@ -78,7 +78,7 @@ The server reads its settings from environment variables. You can provide them i
   cp .env.example .env
   ```
 
-- **The `env` block of your MCP client config** (see the next section). Values set there take precedence over nothing else being loaded, and are the easiest option when you run the server from a shared location.
+- **The `env` block of your MCP client config** (see the next section). This is the easiest option when you run the server from a shared location. If a variable is set in both places, the client's value wins; `.env` never overrides variables that are already set.
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
