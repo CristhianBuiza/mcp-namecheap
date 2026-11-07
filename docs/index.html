@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mcp-namecheap: Namecheap for AI agents over MCP</title>
+  <meta name="description" content="An MCP server that lets AI agents manage Namecheap domains, DNS records, nameservers, email forwarding and pricing. One-command guided setup.">
+  <meta property="og:title" content="mcp-namecheap">
+  <meta property="og:description" content="Manage Namecheap domains and DNS from any MCP client: Cursor, Claude Desktop, VS Code and more.">
+  <meta property="og:image" content="screenshots/setup.png">
+  <link rel="stylesheet" href="style.css">
+  <style>:root { --accent: #f05a28; --accent-strong: #c2410c; --accent-soft: rgba(240, 90, 40, .12); }</style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="#"><span class="logo">N</span> mcp-namecheap</a>
+      <nav>
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#setup">Setup</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="https://github.com/CristhianBuiza/mcp-namecheap">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="wrap">
+        <span class="eyebrow">Model Context Protocol server</span>
+        <h1>Namecheap, managed by your AI agent.</h1>
+        <p class="lead">mcp-namecheap connects Cursor, Claude Desktop, VS Code or any MCP client to the Namecheap API, so an agent can list domains, check availability, edit DNS records, switch nameservers and set up email forwarding, safely.</p>
+        <div class="install">
+          <code id="cmd">npx -y github:CristhianBuiza/mcp-namecheap setup</code>
+          <button class="copy" data-copy="cmd">Copy</button>
+        </div>
+        <p class="install-note">Needs Node.js 21.7+. The guided setup asks for your API credentials, tests them and saves them privately.</p>
+        <div class="cta">
+          <a class="btn primary" href="https://github.com/CristhianBuiza/mcp-namecheap">View on GitHub</a>
+          <a class="btn" href="https://github.com/CristhianBuiza/mcp-namecheap#readme">Read the docs</a>
+        </div>
+      </div>
+    </div>
+
+    <section id="how">
+      <div class="wrap">
+        <h2>How it works</h2>
+        <p class="sub">The server runs on your machine and speaks MCP over stdio. Your client launches it, the agent picks a tool, and the server translates the call into a Namecheap XML API request and returns compact JSON.</p>
+        <div class="flow">
+          <div class="node"><strong>Your MCP client</strong><span>Cursor, Claude Desktop, VS Code, custom agents</span></div>
+          <div class="arrow">stdio</div>
+          <div class="node mid"><strong>mcp-namecheap</strong><span>19 tools, local credentials, safety checks</span></div>
+          <div class="arrow">HTTPS</div>
+          <div class="node"><strong>Namecheap API</strong><span>Production or sandbox, from a whitelisted IP</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="wrap">
+        <h2>Features</h2>
+        <p class="sub">Everything an agent needs for day-to-day domain work, with guardrails on the operations that cost money or replace data.</p>
+        <div class="grid">
+          <div class="card"><h3><span class="ico">◎</span>Domains</h3><p>List and search domains, read details and contacts, check availability (premium names included) and toggle the registrar lock.</p></div>
+          <div class="card"><h3><span class="ico">≡</span>DNS records</h3><p>A, AAAA, ALIAS, CAA, CNAME, MX, MXE, NS, TXT and URL records. Adding or deleting one record keeps every other record intact.</p></div>
+          <div class="card"><h3><span class="ico">⇄</span>Nameservers</h3><p>Point a domain to custom nameservers such as Cloudflare, or switch it back to Namecheap DNS.</p></div>
+          <div class="card"><h3><span class="ico">✉</span>Email forwarding</h3><p>Read and replace forwarding rules, e.g. <code>info@</code> to your team inbox.</p></div>
+          <div class="card"><h3><span class="ico">$</span>Account &amp; pricing</h3><p>Check balance and auto-renew funds, and look up prices for domains, SSL and WhoisGuard.</p></div>
+          <div class="card"><h3><span class="ico">⛨</span>Safe by default</h3><p>Register and renew are off until you enable them. Every tool is annotated read-only or destructive so clients can ask before acting.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="setup">
+      <div class="wrap">
+        <h2>Setup in four steps</h2>
+        <p class="sub">No env files to write by hand: the setup command asks for each value, tests it, and stores it in a file only you can read, outside any repository.</p>
+        <div class="steps">
+          <div class="step"><div>
+            <h3>Enable the Namecheap API</h3>
+            <p>In Namecheap open <strong>Profile &gt; Tools &gt; API Access</strong>, turn it on, copy the API key and whitelist your machine's public IP.</p>
+            <pre>curl https://api.ipify.org   <span class="c"># shows the IP to whitelist</span></pre>
+          </div></div>
+          <div class="step"><div>
+            <h3>Run the guided setup</h3>
+            <p>It asks for the API username and key (hidden while you type), the whitelisted IP, sandbox and purchase options, then tests the connection.</p>
+            <pre>npx -y github:CristhianBuiza/mcp-namecheap setup</pre>
+          </div></div>
+          <div class="step"><div>
+            <h3>Add it to your MCP client</h3>
+            <p>Setup prints this snippet. For Cursor, paste it into <code>~/.cursor/mcp.json</code>. No secrets go in the client config.</p>
+            <pre>{
+  "mcpServers": {
+    "namecheap": { "command": "npx", "args": ["-y", "github:CristhianBuiza/mcp-namecheap"] }
+  }
+}</pre>
+          </div></div>
+          <div class="step"><div>
+            <h3>Reload and ask</h3>
+            <p>Reload MCP servers in your client and try: <em>"List my domains expiring soon"</em> or <em>"Add an A record for app.example.com pointing to 203.0.113.20"</em>.</p>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="screenshots">
+      <div class="wrap">
+        <h2>Screenshots</h2>
+        <p class="sub">Real output from the server, captured from a throwaway install.</p>
+        <p class="shots-note">These were captured by running the actual server from GitHub against a simulated Namecheap API, with placeholder credentials (<code>YOUR_API_USER</code>, <code>YOUR_API_KEY</code>) and documentation-only IPs and domains.</p>
+        <div class="shots">
+          <figure>
+            <img src="screenshots/setup.png" alt="Terminal running the mcp-namecheap setup wizard: it asks for API username, hidden API key, IP, sandbox and purchase options, tests the connection and prints the MCP client config" loading="lazy" width="1800" height="1448">
+            <figcaption><strong>Guided setup.</strong> One question at a time; the API key is hidden, the connection is tested, and the client snippet is printed at the end.</figcaption>
+          </figure>
+          <figure>
+            <img src="screenshots/tools.png" alt="Grid of the 19 tools exposed by mcp-namecheap, each marked read-only, writes or destructive" loading="lazy" width="1800" height="852">
+            <figcaption><strong>Tool list as an MCP client sees it.</strong> Each of the 19 tools carries a read-only or destructive hint.</figcaption>
+          </figure>
+          <figure>
+            <img src="screenshots/calls.png" alt="Tool calls and JSON responses: check_availability, add_dns_record and get_dns_records" loading="lazy" width="1800" height="2047">
+            <figcaption><strong>Sample tool calls.</strong> Checking availability, adding an A record (existing records are kept), and reading the result back.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="safety">
+      <div class="wrap">
+        <h2>Built to be safe</h2>
+        <p class="sub">An API key can control your whole account, so the defaults are conservative.</p>
+        <ul class="checks">
+          <li><strong>Private settings file.</strong> Saved with permissions 600 in your user config folder, never inside a repository.</li>
+          <li><strong>No accidental spending.</strong> <code>register_domain</code> and <code>renew_domain</code> stay disabled until you opt in.</li>
+          <li><strong>No lost DNS records.</strong> Single-record edits read the full set first and write it back.</li>
+          <li><strong>Sandbox support.</strong> Try workflows against <code>api.sandbox.namecheap.com</code> before touching real domains.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>mcp-namecheap · <a href="https://github.com/CristhianBuiza/mcp-namecheap">Source on GitHub</a></span>
+      <span>Independent project, not affiliated with or endorsed by Namecheap, Inc.</span>
+    </div>
+  </footer>
+
+  <script>
+    document.querySelectorAll("[data-copy]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(document.getElementById(button.dataset.copy).textContent);
+        button.textContent = "Copied";
+        setTimeout(() => (button.textContent = "Copy"), 1500);
+      });
+    });
+  </script>
+</body>
+</html>
